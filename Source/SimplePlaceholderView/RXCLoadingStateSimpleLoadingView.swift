@@ -8,22 +8,24 @@
 
 import UIKit
 
-class RXCLoadingStateSimpleLoadingView: UIView {
+///一个简单的Loading界面
+open class RXCLoadingStateSimpleLoadingView: UIView {
 
-    let indicator:UIActivityIndicatorView = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.gray)
+    public let indicator:UIActivityIndicatorView
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    public init(style: UIActivityIndicatorView.Style) {
+        self.indicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.gray)
+        super.init(frame: CGRect.zero)
         self.backgroundColor = UIColor.clear
         self.addSubview(indicator)
         self.indicator.startAnimating()
     }
 
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func layoutSubviews() {
+    open override func layoutSubviews() {
         super.layoutSubviews()
         self.indicator.center = self.center
     }

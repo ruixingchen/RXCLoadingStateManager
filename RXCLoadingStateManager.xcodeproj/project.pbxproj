@@ -33,6 +33,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		802EACAA236C273D006C8A6D /* SimplePlaceholderView */ = {
+			isa = PBXGroup;
+			children = (
+				805326FB21FFEC100006288B /* RXCLoadingStateSimpleEmptyView.swift */,
+				805326FC21FFEC100006288B /* RXCLoadingStateSimpleLoadingView.swift */,
+			);
+			path = SimplePlaceholderView;
+			sourceTree = "<group>";
+		};
 		805326E421FFE7310006288B = {
 			isa = PBXGroup;
 			children = (
@@ -63,8 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				805326FA21FFEC100006288B /* RXCLoadingStateManager.swift */,
-				805326FB21FFEC100006288B /* RXCLoadingStateSimpleEmptyView.swift */,
-				805326FC21FFEC100006288B /* RXCLoadingStateSimpleLoadingView.swift */,
+				802EACAA236C273D006C8A6D /* SimplePlaceholderView */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -292,6 +300,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = RXCLoadingStateManager/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -319,6 +328,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = RXCLoadingStateManager/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

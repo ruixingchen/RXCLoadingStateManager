@@ -8,154 +8,100 @@
 
 import UIKit
 
-public enum RXCLoadingState: Equatable {
-    public static func == (lhs: RXCLoadingState, rhs: RXCLoadingState) -> Bool {
-        return lhs.key == rhs.key
-    }
+public enum RLSLoadingState {
 
-    ///we never make a request, means empty
-    case none
-    case empty(userInfo:[String:Any]?)
-    case loading(userInfo:[String:Any]?)
-    case failure(userInfo:[String:Any]?)
-    case success
+    ///now loading
+    case loading
 
-    var key:String {
-        switch self {
-        case .none:
-            return "none"
-        case .empty(_):
-            return "empty"
-        case .loading(_):
-            return "loading"
-        case .failure(_):
-            return "failure"
-        case .success:
-            return "success"
-        }
-    }
+    ///made a request successfully but get empty content
+    case successWithoutContent
+
+    ///request failed and no content
+    case failedWithoutContent
+
+    ///request finished and have content to show (ignore failed or success)
+    case hasContent
+
 }
 
-public protocol RXCLoadingStatePresenter: AnyObject {
-    func loadingStateManager(presentViewFor manager:RXCLoadingStateManager)->UIView
-    func loadingStateManager(placeholderViewFor manager:RXCLoadingStateManager,loadingState:RXCLoadingState)->UIView
-    ///did add placeholder, presenter has a chance to modify it, like change the frame
-    func loadingStateManager(manager: RXCLoadingStateManager, didAddPlaceholderView placeholder:UIView, forState state:RXCLoadingState)
-    func hasContent()->Bool
+///a presenter that presents the loading state, normally it is a ViewController
+public protocol RLSLoadingStatePresenter: AnyObject {
+    ///the view to present the loading state view, normally it is the ViewController's view
+    func loadingStateManager(manager:RXCLoadingStateManager, presentViewFor loadingState:RLSLoadingState)->UIView
+    ///the view to show loading state info, should bind the info in this function
+    func loadingStateManager(manager:RXCLoadingStateManager, placeholderViewFor loadingState: RLSLoadingState)->UIView
+    ///did add loadingStateView, presenter has a chance to modify it, like change the frame
+    func loadingStateManager(manager: RXCLoadingStateManager, didAddPlaceholderView placeholderView:UIView, for loadingState:RLSLoadingState)
+    ///is there content to show? or we show empty loadingStateView
+    func loadingStateManager_hasContent()->Bool
 }
 
-open class RXCLoadingStateManager {
+public final class RXCLoadingStateManager {
 
-    public private(set) var loadingState:RXCLoadingState = .none
+    public private(set) var loadingState:RLSLoadingState = .hasContent
+    public private(set) var placeholderView:UIView?
+    public weak var presenter:RLSLoadingStatePresenter!
 
-    private var viewDict:[String:UIView] = [:]
+    ///if this is false, manager will not set the frame for loading state views and
+    ///you should handle the frame when returning view
+    public var placeholderViewFillPresentView:Bool = true
 
-    public weak var presenter:RXCLoadingStatePresenter!
-
-    open var layoutPlaceholderClosure:((RXCLoadingState, UIView)->Void)?
-
-    ///init placeholder view even it already exists
-    //works for page that can show a different content with different errors
-    ///if your placeholder view only shows a fixed content, keep it false to save CPU
-    public var initViewEveryTime:Bool = false
-    ///relaod placeholder view even the new state is the same as current state
-    public var reloadViewEveryTime:Bool = false
-    ///if this is false, manager will not set the frame for placeholder views
-    ///you should handle the frame when returning placeholders
-    public var shouldLayoutPlaceholder:Bool = true
-
-    public convenience init(presenter:RXCLoadingStatePresenter) {
-        self.init()
+    public init(presenter:RLSLoadingStatePresenter) {
         self.presenter = presenter
     }
 
-    ///show an empty view ignoring other conditions
-    open func showEmpty(){
-        self.loadingStateChanged(state: .empty(userInfo: nil))
+    ///loading started, if we have no content, show the loading view
+    public func startLoading() {
+        self.loadingState = .loading
+        self.placeholderView?.removeFromSuperview()
+        self.placeholderView = self.presenter.loadingStateManager(manager: self, placeholderViewFor: self.loadingState)
+        let presenter = self.presenter.loadingStateManager(manager: self, presentViewFor: self.loadingState)
+        if self.placeholderViewFillPresentView {
+            self.placeholderView?.frame = presenter.bounds
+        }
+        presenter.addSubview(self.placeholderView!)
+        self.presenter.loadingStateManager(manager: self, didAddPlaceholderView: self.placeholderView!, for: self.loadingState)
     }
 
-    open func startLoading(userInfo:[String:Any]?=nil){
-        self.loadingStateChanged(state: RXCLoadingState.loading(userInfo: userInfo))
-        #if HasXCGLogger
-        logger.debugVerbose("进入加载状态")
-        #endif
-    }
-
-    open func loadingFinish(success:Bool, userInfo:[String:Any]?=nil){
-        #if canImport(XCGLogger)
-        logger.debugVerbose("进入加载结束状态, success:\(success)")
-        #endif
-        let newState:RXCLoadingState
+    ///finish loading with success flag
+    public func finishLoading(success:Bool) {
         if success {
-            if self.presenter.hasContent() {
-                newState = .success
-            }else{
-                newState = .empty(userInfo: userInfo)
+            if self.presenter.loadingStateManager_hasContent() {
+                //success with content, remove all placeholderView
+                self.loadingState = .hasContent
+                self.placeholderView?.removeFromSuperview()
+                self.placeholderView = nil
+            }else {
+                //we have no content
+                self.loadingState = .successWithoutContent
+                self.placeholderView?.removeFromSuperview()
+                self.placeholderView = self.presenter.loadingStateManager(manager: self, placeholderViewFor: self.loadingState)
+                let presenter = self.presenter.loadingStateManager(manager: self, presentViewFor: self.loadingState)
+                if self.placeholderViewFillPresentView {
+                    self.placeholderView?.frame = presenter.bounds
+                }
+                presenter.addSubview(self.placeholderView!)
+                self.presenter.loadingStateManager(manager: self, didAddPlaceholderView: self.placeholderView!, for: self.loadingState)
             }
-        }else{
-            newState = .failure(userInfo: userInfo)
-        }
-        self.loadingStateChanged(state: newState)
-    }
-
-    private func loadingStateChanged(state:RXCLoadingState, force:Bool=false){
-        objc_sync_enter(self)
-        defer {
-            objc_sync_exit(self)
-        }
-
-        #if canImport(XCGLogger)
-        logger.debugVerbose("加载状态切换:\(state),旧状态:\(self.loadingState), force:\(force)")
-        #endif
-
-        if state == self.loadingState && !force && !reloadViewEveryTime {return}
-        //remove old view first
-        let oldState:RXCLoadingState = self.loadingState
-        if let oldPlaceholder = self.viewDict[oldState.key] {
-            oldPlaceholder.removeFromSuperview()
-        }
-
-        let newState = state
-        self.loadingState = newState
-
-        if self.presenter.hasContent() {
-            //we do't show any placeholders when we have content
-            return
-        }
-        let newPlaceholder:UIView = self.placeholderView(forState: newState)
-        let presenterView:UIView = self.presenter.loadingStateManager(presentViewFor: self)
-        if shouldLayoutPlaceholder {
-            if let closure = self.layoutPlaceholderClosure {
-                closure(newState, newPlaceholder)
-            }else{
-                newPlaceholder.frame = presenterView.bounds
-            }
-        }
-        presenterView.addSubview(newPlaceholder)
-        self.presenter.loadingStateManager(manager: self, didAddPlaceholderView: newPlaceholder, forState: newState)
-    }
-
-    private func placeholderView(forState state:RXCLoadingState)->UIView{
-        if self.initViewEveryTime {
-            let view:UIView = self.presenter.loadingStateManager(placeholderViewFor: self, loadingState: state)
-            self.viewDict[state.key] = view
-            return view
-        }else{
-            var view:UIView? = self.viewDict[state.key]
-            if view == nil {
-                view = self.presenter.loadingStateManager(placeholderViewFor: self, loadingState: state)
-                self.viewDict[state.key] = view
-            }
-            return view!
-        }
-    }
-
-    ///release views that are not using
-    open func releaseViews(){
-        for i in self.viewDict {
-            if i.value.superview == nil {
-                viewDict[i.key] = nil
+        }else {
+            if self.presenter.loadingStateManager_hasContent() {
+                //success with content, remove all placeholderView
+                self.loadingState = .hasContent
+                self.placeholderView?.removeFromSuperview()
+                self.placeholderView = nil
+            }else {
+                //we have no content
+                self.loadingState = .failedWithoutContent
+                self.placeholderView?.removeFromSuperview()
+                self.placeholderView = self.presenter.loadingStateManager(manager: self, placeholderViewFor: self.loadingState)
+                let presenter = self.presenter.loadingStateManager(manager: self, presentViewFor: self.loadingState)
+                if self.placeholderViewFillPresentView {
+                    self.placeholderView?.frame = presenter.bounds
+                }
+                presenter.addSubview(self.placeholderView!)
+                self.presenter.loadingStateManager(manager: self, didAddPlaceholderView: self.placeholderView!, for: self.loadingState)
             }
         }
     }
+
 }
