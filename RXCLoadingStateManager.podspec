@@ -1,30 +1,32 @@
-Pod::Spec.new do |s|
-s.name             = "RXCLoadingStateManager"
-s.version          = "1.0"
-s.summary          = "easy way to handle the loading state"
-s.homepage         = "https://github.com/ruixingchen/RXCLoadingStateManager"
-s.license          = { type: 'MIT', file: 'LICENSE' }
-s.author           = { "Ruixingchen" => "rxc@ruixingchen.com" }
-s.source           = { git: "https://github.com/ruixingchen/RXCLoadingStateManager.git", tag: s.version.to_s }
-s.ios.deployment_target = '8.0'
-s.requires_arc = true
-s.ios.source_files = 'Source/*.swift'
-s.ios.frameworks = 'UIKit'
-s.swift_version = "5.1"
+Pod::Spec.new do |spec|
+    spec.name         = "RXCLoadingStateManager"
+    spec.version      = "1.0"
 
-default_subspec = 'Core'
+    spec.author       = { "ruixingchen" => "rxc@ruixingchen.com" }
 
-subspec 'Core' do |subspec|
-    subspec.ios.source_files = 'Source/*.swift'
-    subspec.ios.frameworks = 'UIKit'
-    subspec.ios.deployment_target = '8.0'
-    subspec.requires_arc = true
+    spec.summary      = "easy to manage loading state"
+    spec.description  = "easy to manage loading state."
+    spec.homepage     = "https://github.com/ruixingchen/RXCLoadingStateManager"
+    spec.license      = "MIT"
+
+    spec.source       = { :git => "https://github.com/ruixingchen/RXCLoadingStateManager.git", :tag => spec.version.to_s }
+    #spec.source_files  = "Source/*.swift"
+
+    spec.requires_arc = true
+    spec.swift_versions = "5.1"
+    spec.ios.deployment_target = '9.0'
+
+    spec.default_subspecs = 'Core'
+
+    spec.subspec 'Core' do |subspec|
+        subspec.ios.source_files = 'Source/RXCLoadingStateManager.swift'
+        subspec.ios.frameworks = 'UIKit'
+    end
+
+    spec.subspec 'SimplePlaceholderView' do |subspec|
+        subspec.ios.source_files = 'Source/SimplePlaceholderView/*.swift'
+        subspec.ios.frameworks = 'UIKit'
+    end
+
 end
-
-subspec 'SimplePlaceholderView' do |subspec|
-    subspec.ios.source_files = 'Source/SimplePlaceholderView/*.swift'
-    subspec.ios.deployment_target = '9.0'
-    subspec.ios.frameworks = 'UIKit'
-end
-
-end
+  
